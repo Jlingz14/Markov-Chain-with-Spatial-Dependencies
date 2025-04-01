@@ -1,0 +1,198 @@
+
+# MATRICE DE TRANSITION AVEC LOI A PRIORI JEFFREY
+```{r}
+Q = matrix(c(0,6,10,7,0,13,4,15,0),nrow=3,byrow = TRUE) # Nombre de transition
+Q
+```
+```{r}
+likelihood = function(theta){
+  n01 = 6
+  n02 = 10
+  n10 = 7
+  n12 = 13
+  n20 = 4
+  n21 = 15
+  return((theta[1])**n01 * (1-theta[1])**n02 * (theta[2])**n10 * (1-theta[2])**n12 * (theta[3])**n20 * (1-theta[3])**n21)
+}
+# Loi non informative de Jeyffrey 
+log_prior = function(theta , n01=6 , n02=10, n10=7,  
+                     n12=13,n20=4,n21 = 15){
+  # Resultat des derivée seconde du matrice hessienne(matrice diagonale)
+  a1 = n01/theta[1]^2 + n02/(1 - theta[1])^2
+  a2 = n10/theta[2]^2 + n12/(1 - theta[2])^2
+  a3 = n20/theta[3]^2 + n21/(1 - theta[3])^2
+  return(sqrt(a1*a2*a3)) #racine carré du deternminant du matrice de fisher
+}
+
+prior = function(theta){
+  return(prod(dunif(theta)))
+}
+
+acceptance_ratio <- function(theta,theta_new){
+  return(min(1, ((likelihood(theta_new) / likelihood(theta)) * (log_prior(theta_new) / log_prior(theta)))))
+}
+n_samples = 10000
+
+theta <- runif(3)
+
+theta1 <- c()
+theta2 <- c()
+theta3 <- c()
+
+for (i in seq(1,n_samples)) {
+  eps <- rnorm(3,0,sd=.01)
+  theta_new <- theta + eps
+  R = acceptance_ratio(theta,theta_new)
+  
+  u = runif(1)
+  if( u < R){
+    theta = theta_new
+    theta1 = append(theta1,theta[1])
+    theta2 = append(theta2,theta[2])
+    theta3 = append(theta3,theta[3])
+  }
+}
+```
+
+
+```{r fig3, fig.height = 6, fig.width = 3, fig.align = "center"}
+#png(filename = 'theta13.jpg',width = 2000,height = 4000,res=400)
+par(mfrow=c(2,1),mar=c(0,2,1,2))
+hist(theta1,breaks=30,main = "",xlab = "",axes = F,ylab = "")
+par(mar=c(3,3,0,2))
+plot(theta1,seq(1,length(theta1)),type='l',xlab="",ylab="")
+lines(cumsum(theta1)/seq(1,length(theta1)),seq(1,length(theta1)),lwd=2,col="red",lty=2)
+abline(v=Q[1,2]/sum(Q[1,]),lwd=3,col="blue")
+```
+```{r fig4, fig.height = 6, fig.width = 3, fig.align = "center"}
+#png(filename = 'theta23.jpg',width = 2000,height = 4000,res=400)
+par(mfrow=c(2,1),mar=c(0,2,1,2))
+hist(theta2,breaks=30,main = "",xlab = "",axes = F,ylab = "")
+par(mar=c(3,3,0,2))
+plot(theta2,seq(1,length(theta2)),type='l',xlab="",ylab="")
+lines(cumsum(theta2)/seq(1,length(theta2)),seq(1,length(theta2)),lwd=2,col="red",lty=2)
+abline(v=Q[2,1]/sum(Q[2,]),lwd=3,col="blue")
+```
+
+```{r fig5, fig.height = 6, fig.width = 3, fig.align = "center"}
+#png(filename = 'theta33.jpg',width = 2000,height = 4000,res=400)
+par(mfrow=c(2,1),mar=c(0,2,1,2))
+hist(theta3,breaks=30,main = "",xlab = "",axes = F,ylab = "")
+par(mar=c(3,3,0,2))
+plot(theta3,seq(1,length(theta3)),type='l',xlab="",ylab="")
+lines(cumsum(theta3)/seq(1,length(theta3)),seq(1,length(theta3)),lwd=2,col="red",lty=2)
+abline(v=Q[3,1]/sum(Q[3,]),lwd=3,col="blue")
+```
+
+
+
+
+
+# ESTIMATION BAYESIENNE DU LOI DES TEMPS DE SEJOUR
+## LOI A PRIORI POUR LOI GEOMETRIQUE
+```{r}
+#png(filename = 'prior.jpg',width = 4000,height = 2000,res=400)
+curve(dbeta(x,6,4),0,1.5,col='red',ylim=c(0,3),ylab = "",xlab = "")
+curve(dbeta(x,4,6),0,1.5,col='green',add=TRUE)
+legend(x="topright",legend=c("Beta(6,4)","Beta(4,6)"),lty=c(1,1),col=c("red","green"))
+```
+```{r}
+sejour = c(3,1,1,3,1,1,3,6,12,16,2 ,1) # temps de sejour en etat high
+x = sort(sejour)
+```
+```{r}
+# LOI GEOMETRIQUE
+vraisemblance = function(p){
+  return((p^length(x))*((1-p)^(sum(x)-length(x))))
+}
+
+prior = function(p){
+  return(dbeta(p,6,4))
+}
+acceptance_ratio = function(p,p_new){
+  return(min(1,(vraisemblance(p_new)/vraisemblance(p))*(prior(p_new) / prior(p))))
+}
+results = c()
+
+#p = runif(1)
+p = runif(1)
+
+n_samples = 100000
+
+std = 0.01
+
+for (i in seq(1,n_samples)) {
+  eps <- rnorm(1,0,std)
+  p_new <-p + eps
+  R = acceptance_ratio(p,p_new)
+  
+  u = runif(1)
+  if( u < R){
+     p = p_new
+    results = append(results,p)
+  }
+   
+}
+```
+
+
+```{r fig1, fig.height = 6, fig.width = 3, fig.align = "center"}
+#png(filename = 'gamma1.jpg',width = 2000,height = 4000,res=400)
+par(mfrow=c(2,1),mar=c(0,2,1,2))
+hist(results,breaks=30,main = "",xlab = "",axes = F,ylab = "")
+par(mar=c(3,3,0,2))
+plot(results,seq(1,length(results)),type='l',xlab="",ylab="")
+lines(cumsum(results)/seq(1,length(results)),seq(1,length(results)),lwd=2,col="red",lty=2)
+abline(v=lamda,lwd=3,col="blue")
+mean(results)
+```
+```{r}
+sejour = c(10 ,7,3,1,1,1,1,1,2,4,1) #temps de sejour en état Low to Medium
+x = sort(sejour)
+```
+
+
+```{r}
+
+# LOI POISSON
+vraisemblance = function(p){
+  return(-length(x)*p + sum(x)*log(p) - sum(log(factorial(x))))
+}
+# Loi a priori loi normal
+prior = function(p){
+  return(dnorm(p,mean = 5,sd=1))
+}
+
+acceptance_ratio = function(p,p_new){
+  return(min(1,(vraisemblance(p_new)/vraisemblance(p))*(prior(p_new)/prior(p))))
+}
+results = c()
+
+#p = runif(1)
+p = rgamma(1,shape = 6,rate=1)
+
+n_samples = 30000
+
+for (i in seq(1,n_samples)) {
+  p_new = rgamma(1,shape = 6,rate=1)
+  
+  R = acceptance_ratio(p,p_new)
+  
+  u = runif(1)
+  if( u < R){
+     p = p_new
+    results = append(results,p)
+  }
+   
+}
+```
+```{r fig2, fig.height = 6, fig.width = 3, fig.align = "center"}
+#png(filename = 'gamma1.jpg',width = 2000,height = 4000,res=400)
+par(mfrow=c(2,1),mar=c(0,2,1,2))
+hist(results,breaks=30,main = "",xlab = "",axes = F,ylab = "",xlim = c(2,8))
+par(mar=c(3,3,0,2))
+plot(results,seq(1,length(results)),type='l',xlab="",ylab="",xlim = c(2,8))
+lines(cumsum(results)/seq(1,length(results)),seq(1,length(results)),lwd=2,col="red",lty=2)
+abline(v=gama,lwd=3,col="blue")
+mean(results)
+```
