@@ -4,3 +4,7 @@ Here, the question is to study and quantify whether neighborhood context affects
 
 # Code explanation 
 This article used published data on confirmed cases of Covid’19 in the 22 regions of Madagascar. These data were discretized to obtain a discrete state of propagation intensity.
+
+
+# Help
+Please direct all questions to stefanatsilefa@gmail.com
